@@ -20,6 +20,14 @@ library(plotly)
 library(tidyverse)
 library(stars)
 library(ggspatial)
+library(htmltools)
+library(knitr)
+library(kableExtra)
+library(gt)
+library(gtExtras)
+library(ggflags)
+library(paletteer)
+library(systemfonts)
 
 # CARICAMENTO DATI ----
 ## Totale ----
@@ -90,6 +98,30 @@ ggplotly(ggsf_sum, tooltip = "label")
 
 ## TABELLA DINAMICA ----
 
+
+
+
+sum <- sum %>%
+  mutate(
+  flag = case_when(
+    ISO == "CA" ~ "Flag/ca.png",
+    ISO == "US" ~ "Flag/us.png",
+    ISO == "RU" ~ "Flag/ru.png",
+    ISO == "MX" ~ "Flag/mx.png",
+    ISO == "BR" ~ "Flag/br.png",
+    ISO == "FR" ~ "Flag/fr.png",
+    ISO == "KR" ~ "Flag/kr.png",
+    ISO == "DE" ~ "Flag/de.png",
+    ISO == "GR" ~ "Flag/gr.png",
+    ISO == "ES" ~ "Flag/es.png",
+    ISO == "AU" ~ "Flag/au.png",
+    ISO == "CN" ~ "Flag/cn.png",
+    ISO == "IT" ~ "Flag/it.png",
+    ISO == "GB" ~ "Flag/gb.png",
+    ISO == "FI" ~ "Flag/fi.png",
+    ISO == "JP" ~ "Flag/jp.png",
+))%>%
+  select(flag, everything())
 datatable(sum)
 
 datatable(sum,
@@ -111,13 +143,26 @@ datatable(sum,
 )
 
 
+table<-sum%>%
+  select(flag, ISO, Year, Event, impatto.economico.anno.dell.evento, impatto.ambientale.anno.dell.evento, impatto.sociale.anno.dell.evento, Impatto.totale)%>%
+  gt()%>%
+  gt_img_rows(flag)%>%
+  gt_color_rows(Impatto.totale, palette = "ggsci::blue_material")%>%
+  gt_theme_espn()%>%
+  cols_align(
+    align = "center",
+    columns = c(Impatto.totale, flag)
+  )%>%
+  tab_footnote("Impatto olimpiadi estive",
+               locations = cells_column_labels(columns = ISO))%>%
+  tab_options(heading.title.font.size = 20)%>%
+  tab_header(title = "IMPATTO OLIMPIADI ESTIVE",
+             subtitle= "Impatto calcolato")%>%
+  tab_source_note("Data from SBL Consultancy | Table Graphic by Alberto Calabrese")
 
+table
 
-
-
-
-
-
+# Da modificare
 
 
 

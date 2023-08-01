@@ -135,7 +135,6 @@ library(sf)
 library(plotly)
 
 # Caricamento dati
-dati_csv <- read.csv("Data/Dati.csv", sep = ";", header = TRUE, na.strings = "", dec = ",")
 dati_xls <- read_excel("Data/Dati.xlsx")
 
 robinson_crs <- "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
@@ -190,7 +189,10 @@ ui <- fluidPage(
   titlePanel("Web App Mappa Eventi"),
   sidebarLayout(
     sidebarPanel(
-      selectInput("mega_evento", "Seleziona Mega Evento:", choices = c("Olympic Summer", "Olympic Winter", "Expo", "World Cup"), selected = "Olympic Summer")
+      selectInput("mega_evento", "Seleziona Mega Evento:", choices = c("Africa Cup", "Alpine Skiing World", "Asian Beach Games", "Asian Games", 
+                                                                       "Commonwealth Games", "European Games", "Expo", "Fisu University Summer",
+                                                                       "Fisu University Winter", "Mediterranean Games", "Olympic Summer",
+                                                                       "Olympic Winter", "World Cup", "World Games", "World Swimming", "Youth Games"), selected = "Olympic Summer")
     ),
     mainPanel(
       plotlyOutput("mappa"),
