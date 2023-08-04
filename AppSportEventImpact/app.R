@@ -1,10 +1,20 @@
 library(shiny)
+library(shinyWidgets)
 library(ggplot2)
 library(dplyr)
 library(readxl)
 library(sf)
 library(plotly)
 library(shinythemes)
+library(gt)
+library(gtExtras)
+library(DT)
+library(formattable)
+library(htmltools) 
+if (!requireNamespace("magick", quietly = TRUE)) {
+    install.packages("magick")
+}
+library(magick)
 
 # Caricamento dati
 dati_xls <- read_excel("Data/Dati.xlsx")
@@ -56,28 +66,184 @@ breaks <- c(vmin, brk)
 
 cols <- c('#ff0000', '#ffa500', '#72d65d', '#00a2d2')
 
+# BANDIERE ----
+
+# Codice per ridimensionare le immagini delle bandiere
+flag_folder <- "Flag/"  # Assicurati che la cartella contenga solo i file delle bandiere
+flags <- list.files(flag_folder, pattern = ".png", full.names = TRUE)
+new_size <- c(50, 25)
+
+for (flag_path in flags) {
+    image <- image_read(flag_path)
+    image_resized <- image_scale(image, paste0(new_size[1], "x", new_size[2]))
+    image_write(image_resized, flag_path)
+}
+
+join <- join %>%
+    mutate(
+        flag = case_when(
+            iso_a2 == "AE" ~ "Flag/ae.png",
+            iso_a2 == "AO" ~ "Flag/ao.png",
+            iso_a2 == "AR" ~ "Flag/ar.png",
+            iso_a2 == "AT" ~ "Flag/at.png",
+            iso_a2 == "AU" ~ "Flag/au.png",
+            iso_a2 == "AZ" ~ "Flag/az.png",
+            iso_a2 == "BA" ~ "Flag/ba.png",
+            iso_a2 == "BF" ~ "Flag/bf.png",
+            iso_a2 == "BG" ~ "Flag/bg.png",
+            iso_a2 == "BR" ~ "Flag/br.png",
+            iso_a2 == "BY" ~ "Flag/by.png",
+            iso_a2 == "CA" ~ "Flag/ca.png",
+            iso_a2 == "CH" ~ "Flag/ch.png",
+            iso_a2 == "CI" ~ "Flag/ci.png",
+            iso_a2 == "CL" ~ "Flag/cl.png",
+            iso_a2 == "CM" ~ "Flag/cm.png",
+            iso_a2 == "CN" ~ "Flag/cn.png",
+            iso_a2 == "CO" ~ "Flag/co.png",
+            iso_a2 == "CZ" ~ "Flag/cz.png",
+            iso_a2 == "DE" ~ "Flag/de.png",
+            iso_a2 == "DZ" ~ "Flag/dz.png",
+            iso_a2 == "EC" ~ "Flag/ec.png",
+            iso_a2 == "EG" ~ "Flag/eg.png",
+            iso_a2 == "ES" ~ "Flag/es.png",
+            iso_a2 == "ET" ~ "Flag/et.png",
+            iso_a2 == "FI" ~ "Flag/fi.png",
+            iso_a2 == "FR" ~ "Flag/fr.png",
+            iso_a2 == "GA" ~ "Flag/ga.png",
+            iso_a2 == "GB" ~ "Flag/gb.png",
+            iso_a2 == "GH" ~ "Flag/gh.png",
+            iso_a2 == "GN" ~ "Flag/gn.png",
+            iso_a2 == "GQ" ~ "Flag/gq.png",
+            iso_a2 == "GR" ~ "Flag/gr.png",
+            iso_a2 == "HR" ~ "Flag/hr.png",
+            iso_a2 == "HU" ~ "Flag/hu.png",
+            iso_a2 == "ID" ~ "Flag/id.png",
+            iso_a2 == "IN" ~ "Flag/in.png",
+            iso_a2 == "IR" ~ "Flag/ir.png",
+            iso_a2 == "IT" ~ "Flag/it.png",
+            iso_a2 == "JM" ~ "Flag/jm.png",
+            iso_a2 == "JP" ~ "Flag/jp.png",
+            iso_a2 == "KR" ~ "Flag/kr.png",
+            iso_a2 == "KZ" ~ "Flag/kr.png",
+            iso_a2 == "LB" ~ "Flag/lb.png",
+            iso_a2 == "LU" ~ "Flag/lu.png",
+            iso_a2 == "LY" ~ "Flag/ly.png",
+            iso_a2 == "MA" ~ "Flag/ma.png",
+            iso_a2 == "ML" ~ "Flag/ml.png",
+            iso_a2 == "MX" ~ "Flag/mx.png",
+            iso_a2 == "MY" ~ "Flag/my.png",
+            iso_a2 == "NG" ~ "Flag/ng.png",
+            iso_a2 == "NL" ~ "Flag/nl.png",
+            iso_a2 == "NO" ~ "Flag/no.png",
+            iso_a2 == "NZ" ~ "Flag/nz.png",
+            iso_a2 == "OM" ~ "Flag/om.png",
+            iso_a2 == "PH" ~ "Flag/ph.png",
+            iso_a2 == "PL" ~ "Flag/pl.png",
+            iso_a2 == "PT" ~ "Flag/pt.png",
+            iso_a2 == "QA" ~ "Flag/qa.png",
+            iso_a2 == "RO" ~ "Flag/ro.png",
+            iso_a2 == "RS" ~ "Flag/rs.png",
+            iso_a2 == "RU" ~ "Flag/ru.png",
+            iso_a2 == "SD" ~ "Flag/sd.png",
+            iso_a2 == "SG" ~ "Flag/sg.png",
+            iso_a2 == "SK" ~ "Flag/sk.png",
+            iso_a2 == "SN" ~ "Flag/sn.png",
+            iso_a2 == "SY" ~ "Flag/sy.png",
+            iso_a2 == "TH" ~ "Flag/th.png",
+            iso_a2 == "TN" ~ "Flag/tn.png",
+            iso_a2 == "TR" ~ "Flag/tr.png",
+            iso_a2 == "US" ~ "Flag/us.png",
+            iso_a2 == "VN" ~ "Flag/vn.png",
+            iso_a2 == "ZA" ~ "Flag/za.png"
+        ))%>%
+    select(flag, everything())
+
+
+# CHAT GPT ----
+
+# Creazione della colonna con le immagini delle bandiere
+join <- join %>%
+    mutate(
+        flag_html = sprintf('<img src="%s" width="50" height="25"/>', flag)
+    )
+
 # Definizione dell'interfaccia Shiny
 ui <- fluidPage(
     titlePanel("Web App Mappa Eventi"),
     theme = shinytheme("cerulean"),
     sidebarLayout(
         sidebarPanel(
-            selectInput("mega_evento", "Seleziona Mega Evento:", choices = c("Africa Cup", "Alpine Skiing World", "Asian Beach Games", "Asian Games", 
-                                                                             "Commonwealth Games", "European Games", "Expo", "Fisu University Summer",
-                                                                             "Fisu University Winter", "Mediterranean Games", "Olympic Summer",
-                                                                             "Olympic Winter", "World Cup", "World Games", "World Swimming", "Youth Games"), selected = "Olympic Summer")
+            selectInput("mega_evento", "Seleziona Mega Evento:", choices = c(
+                "Africa Cup", "Alpine Skiing World", "Asian Beach Games", "Asian Games",
+                "Commonwealth Games", "European Games", "Expo", "Fisu University Summer",
+                "Fisu University Winter", "Mediterranean Games", "Olympic Summer",
+                "Olympic Winter", "World Cup", "World Games", "World Swimming", "Youth Games"
+            ), selected = "Olympic Summer"),
+            
+            selectizeInput("paese", "Seleziona Paesi:", choices = NULL, selected = NULL, multiple = TRUE),
+            selectizeInput("anno", "Seleziona Anni:", choices = NULL, selected = NULL, multiple = TRUE)
         ),
         mainPanel(
             plotlyOutput("mappa"),
-            dataTableOutput("tabella")
+            DTOutput("tabella")  # Utilizziamo DTOutput invece di tableOutput
         )
     )
 )
 
+# ...
+
 # Funzione di server Shiny
-server <- function(input, output) {
+server <- function(input, output, session) {  # Aggiungi 'session' come parametro
+    
+    # Filtro per paese basato sul mega evento selezionato
+    paesi_disponibili <- reactive({
+        filtered_data <- join %>%
+            filter(Event == input$mega_evento)
+        if (is.null(input$paese) || "Tutti i paesi" %in% input$paese) {
+            unique(filtered_data$name)
+        } else {
+            input$paese
+        }
+    })
+    
+    # Filtro per anno basato sul paese selezionato
+    anni_disponibili <- reactive({
+        filtered_data <- join
+        if (!is.null(input$mega_evento)) {
+            filtered_data <- filter(filtered_data, Event == input$mega_evento)
+        }
+        if (!is.null(input$paese) && !("Tutti i paesi" %in% input$paese)) {
+            filtered_data <- filter(filtered_data, name %in% input$paese)
+        }
+        if (is.null(input$anno) || "Tutti gli anni" %in% input$anno) {
+            unique(filtered_data$Year)
+        } else {
+            input$anno
+        }
+    })
+    
     filtered_join <- reactive({
-        filter(join, Event == input$mega_evento)
+        filtered_data <- join
+        if (!is.null(input$mega_evento)) {
+            filtered_data <- filter(filtered_data, Event == input$mega_evento)
+        }
+        if (!is.null(input$paese) && !("Tutti i paesi" %in% input$paese)) {
+            filtered_data <- filter(filtered_data, name %in% input$paese)
+        }
+        if (!is.null(input$anno) && !("Tutti gli anni" %in% input$anno)) {
+            filtered_data <- filter(filtered_data, Year %in% input$anno)
+        }
+        filtered_data
+    })
+    
+    # Impostare le opzioni per il filtro del paese
+    observeEvent(join, {
+        updateSelectizeInput(session, "paese", choices = c("Tutti i paesi", paesi_disponibili()), selected = "Tutti i paesi")
+    })
+    
+    # Impostare le opzioni per il filtro dell'anno
+    observeEvent(join, {
+        updateSelectizeInput(session, "anno", choices = c("Tutti gli anni", anni_disponibili()), selected = "Tutti gli anni")
     })
     
     output$mappa <- renderPlotly({
@@ -86,17 +252,40 @@ server <- function(input, output) {
             scale_fill_gradient2(low = "#ff0000", mid = '#ffa500', high = '#72d65d', na.value = "lightgray") +
             labs(title = "Sport Event Impact", fill = "Impatto calcolato") +
             theme_minimal()
-        
         ggplotly(ggsf_filtered, tooltip = "label")
     })
     
-    output$tabella <- renderDataTable({
-        filtered_join() %>%
-            dplyr::select(Stato = name, `Anno dell'evento` = Year, `Mega evento` = Event, `Impatto dell'evento` = `Impatto totale`,
-                          `Impatto economico` = `impatto economico anno dell'evento`, `Impatto ambientale` = `impatto ambientale anno dell'evento`,
-                          `Impatto sociale` = `impatto sociale anno dell'evento`)
+    # Creiamo la tabella con DT e aggiungiamo la colonna con le bandiere
+    output$tabella <- renderDT({
+        table <- filtered_join() %>%
+            dplyr::select(
+                Flag = flag_html , ISO = iso_a2, Year, Event,
+                `Impatto economico` = `impatto economico anno dell'evento`,
+                `Impatto ambientale` = `impatto ambientale anno dell'evento`,
+                `Impatto sociale` = `impatto sociale anno dell'evento`,
+                `Impatto totale`
+            )
+        
+        datatable(
+            table,
+            escape = FALSE,  # Permette di interpretare le immagini HTML
+            options = list(
+                dom = 't',  # Nasconde la barra di ricerca
+                paging = FALSE,  # Disabilita la paginazione
+                ordering = FALSE,  # Disabilita il sorting
+                info = FALSE  # Nasconde il conteggio delle righe
+            ),
+            rownames = FALSE,  # Nasconde numeri di riga
+            class = 'stripe hover',  # Stile della tabella
+            callback = JS('table.column(0).nodes().to$().css({ width: "50px" });')  # Imposta la larghezza delle immagini
+        )
     })
 }
 
 # Esecuzione dell'applicazione Shiny
 shinyApp(ui = ui, server = server)
+
+
+
+
+
