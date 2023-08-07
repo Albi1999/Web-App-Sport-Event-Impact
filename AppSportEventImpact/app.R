@@ -1,3 +1,6 @@
+# WEB APP SPORT EVENT IMPACT
+
+# CARICAMENTO LIBRERIE ----
 library(shiny)
 library(shinyWidgets)
 library(ggplot2)
@@ -16,7 +19,7 @@ if (!requireNamespace("magick", quietly = TRUE)) {
 }
 library(magick)
 
-# Caricamento dati
+# CARICAMENTO DATI ----
 dati_xls <- read_excel("Data/Dati.xlsx")
 
 robinson_crs <- "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
@@ -35,7 +38,7 @@ world_sf_no_antartica[44, ]$iso_a2 <- "FR"
 world_sf_no_antartica[22, ]$iso_a2 <- "NO"
 world_sf_no_antartica[167, ]$iso_a2 <- "SO"
 
-# Trasformazioni dei dati
+# TRASFORMAZIONE DEI DATI ----
 join <- left_join(world_sf_no_antartica, dati_xls, by = c("iso_a2" = "ISO"), multiple = "all")
 join <- join |>
     st_as_sf() |>
@@ -64,20 +67,13 @@ brk <- round(classInt::classIntervals(
     append(vmax)
 breaks <- c(vmin, brk)
 
-cols <- c('#ff0000', '#ffa500', '#72d65d', '#00a2d2')
+cols <- c('#ff0000', '#ffa500', '#72d65d', '#00a2d2', "lightgray")
+
+col <- colorRampPalette(c('#ff0000', '#00a2d2'))(length(breaks) + 1)
+
+clrs <- scale_fill_gradient2(low = "#ff0000", mid = '#ffa500', high = '#72d65d', na.value = "lightgray")
 
 # BANDIERE ----
-
-# Codice per ridimensionare le immagini delle bandiere
-flag_folder <- "Flag/"  # Assicurati che la cartella contenga solo i file delle bandiere
-flags <- list.files(flag_folder, pattern = ".png", full.names = TRUE)
-new_size <- c(50, 25)
-
-for (flag_path in flags) {
-    image <- image_read(flag_path)
-    image_resized <- image_scale(image, paste0(new_size[1], "x", new_size[2]))
-    image_write(image_resized, flag_path)
-}
 
 join <- join %>%
     mutate(
@@ -158,8 +154,7 @@ join <- join %>%
         ))%>%
     select(flag, everything())
 
-
-# CHAT GPT ----
+# WEB APP ----
 
 # Creazione della colonna con le immagini delle bandiere
 join <- join %>%
@@ -169,7 +164,7 @@ join <- join %>%
 
 # Definizione dell'interfaccia Shiny
 ui <- fluidPage(
-    titlePanel("Web App Mappa Eventi"),
+    titlePanel("Web App Sport Event Impact"),
     theme = shinytheme("cerulean"),
     sidebarLayout(
         sidebarPanel(
@@ -180,8 +175,10 @@ ui <- fluidPage(
                 "Olympic Winter", "World Cup", "World Games", "World Swimming", "Youth Games"
             ), selected = "Olympic Summer"),
             
-            selectizeInput("paese", "Seleziona Paesi:", choices = NULL, selected = NULL, multiple = TRUE),
-            selectizeInput("anno", "Seleziona Anni:", choices = NULL, selected = NULL, multiple = TRUE)
+            selectizeInput("paese", "Seleziona Paesi:", choices = NULL, selected = NULL, 
+                           multiple = TRUE),
+            selectizeInput("anno", "Seleziona Anni:", choices = NULL, selected = NULL, 
+                           multiple = TRUE)
         ),
         mainPanel(
             plotlyOutput("mappa"),
@@ -190,7 +187,6 @@ ui <- fluidPage(
     )
 )
 
-# ...
 
 # Funzione di server Shiny
 server <- function(input, output, session) {  # Aggiungi 'session' come parametro
@@ -238,19 +234,24 @@ server <- function(input, output, session) {  # Aggiungi 'session' come parametr
     
     # Impostare le opzioni per il filtro del paese
     observeEvent(join, {
-        updateSelectizeInput(session, "paese", choices = c("Tutti i paesi", paesi_disponibili()), selected = "Tutti i paesi")
+        updateSelectizeInput(session, "paese", 
+                             choices = c("Tutti i paesi", paesi_disponibili()), 
+                             selected = "Tutti i paesi")
     })
     
     # Impostare le opzioni per il filtro dell'anno
     observeEvent(join, {
-        updateSelectizeInput(session, "anno", choices = c("Tutti gli anni", anni_disponibili()), selected = "Tutti gli anni")
+        updateSelectizeInput(session, "anno", 
+                             choices = c("Tutti gli anni", anni_disponibili()), 
+                             selected = "Tutti gli anni")
     })
     
     output$mappa <- renderPlotly({
         ggsf_filtered <- ggplot(filtered_join()) +
             geom_sf(aes(fill = `Impatto totale`, label = Info)) +
-            scale_fill_gradient2(low = "#ff0000", mid = '#ffa500', high = '#72d65d', na.value = "lightgray") +
-            labs(title = "Sport Event Impact", fill = "Impatto calcolato") +
+            scale_fill_gradient2(low = "#ff0000", mid = '#ffa500', high = '#72d65d',
+                                 na.value = "lightgray", space = "Lab") +
+            labs(title = "Mappa impatto dei mega eventi", fill = "Impatto calcolato") +
             theme_minimal()
         ggplotly(ggsf_filtered, tooltip = "label")
     })
@@ -259,11 +260,8 @@ server <- function(input, output, session) {  # Aggiungi 'session' come parametr
     output$tabella <- renderDT({
         table <- filtered_join() %>%
             dplyr::select(
-                Flag = flag_html , ISO = iso_a2, Year, Event,
-                `Impatto economico` = `impatto economico anno dell'evento`,
-                `Impatto ambientale` = `impatto ambientale anno dell'evento`,
-                `Impatto sociale` = `impatto sociale anno dell'evento`,
-                `Impatto totale`
+                Flag = flag_html , ISO = iso_a2, Year, Event, `Impatto economico`, 
+                `Impatto ambientale`, `Impatto sociale`, `Impatto totale`
             )
         
         datatable(
@@ -272,17 +270,21 @@ server <- function(input, output, session) {  # Aggiungi 'session' come parametr
             options = list(
                 dom = 't',  # Nasconde la barra di ricerca
                 paging = FALSE,  # Disabilita la paginazione
-                ordering = FALSE,  # Disabilita il sorting
-                info = FALSE  # Nasconde il conteggio delle righe
+                ordering = TRUE,  # Disabilita il sorting
+                autoWidth = TRUE, ## use smart column width handling
+                info = FALSE,  # Nasconde il conteggio delle righe
+                scrollX = TRUE
             ),
             rownames = FALSE,  # Nasconde numeri di riga
             class = 'stripe hover',  # Stile della tabella
-            callback = JS('table.column(0).nodes().to$().css({ width: "50px" });')  # Imposta la larghezza delle immagini
-        )
+            callback = JS('table.column(0).nodes().to$().css({ width: "50px" });')  
+            # Imposta la larghezza delle immagini
+        ) %>%
+            formatStyle("Impatto totale" , backgroundColor = styleInterval(breaks, cols))
     })
 }
 
-# Esecuzione dell'applicazione Shiny
+# ESECUZIONE WEB APP SHINY ----
 shinyApp(ui = ui, server = server)
 
 

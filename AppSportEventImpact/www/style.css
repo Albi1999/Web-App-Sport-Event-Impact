@@ -1,0 +1,19 @@
+/* Definizione delle classi CSS per colorare le celle dell'impatto */
+.negative-impact {
+  background-color: red;
+  color: white;
+}
+
+.neutral-impact {
+  background-color: yellow;
+}
+
+.positive-impact {
+  background-color: green;
+  color: white;
+}
+
+.blue-impact {
+  background-color: blue;
+  color: white;
+}
