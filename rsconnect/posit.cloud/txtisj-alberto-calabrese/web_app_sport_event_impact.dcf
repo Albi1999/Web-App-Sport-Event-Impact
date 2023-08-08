@@ -1,0 +1,13 @@
+name: web_app_sport_event_impact
+title: Web App Sport Event Impact
+username:
+account: txtisj-alberto-calabrese
+server: posit.cloud
+hostUrl: https://api.shinyapps.io/v1
+appId: 9572242
+bundleId: 7544287
+url: https://posit.cloud/content/6289765
+when: 1691506887.64013
+lastSyncTime: 1691506887.64015
+asMultiple: FALSE
+asStatic: FALSE

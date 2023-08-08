@@ -1,3 +1,8 @@
+if (!requireNamespace("magick", quietly = TRUE)) {
+  install.packages("magick")
+}
+library(magick)
+
 # Codice per ridimensionare le immagini delle bandiere
 flag_folder <- "Flag/"  # Assicurati che la cartella contenga solo i file delle bandiere
 flags <- list.files(flag_folder, pattern = ".png", full.names = TRUE)

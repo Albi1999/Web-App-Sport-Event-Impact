@@ -1,0 +1,309 @@
+---
+title: "Web App Sport Event Impact Document"
+author: "Alberto Calabrese"
+date: "2023-08-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# WEB APP SPORT EVENT IMPACT
+
+# CARICAMENTO LIBRERIE ----
+library(shiny)
+library(shinyWidgets)
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(sf)
+library(plotly)
+library(shinythemes)
+library(gt)
+library(gtExtras)
+library(DT)
+library(formattable)
+library(htmltools) 
+if (!requireNamespace("magick", quietly = TRUE)) {
+    install.packages("magick")
+}
+library(magick)
+
+# CARICAMENTO DATI ----
+dati_xls <- read_excel("Data/Dati.xlsx")
+
+robinson_crs <- "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+crsLONGLAT <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+
+world_sf <- rnaturalearth::ne_countries(type = "countries", scale = "small") |>
+    sf::st_as_sf(wkt = "geometry") |>
+    sf::st_transform(crsLONGLAT) |>
+    sf::st_set_crs(crsLONGLAT)
+
+world_sf_no_antartica <- world_sf |>
+    dplyr::filter(region_un != "Antarctica") |>
+    dplyr::select(iso_a2, name)
+
+world_sf_no_antartica[44, ]$iso_a2 <- "FR"
+world_sf_no_antartica[22, ]$iso_a2 <- "NO"
+world_sf_no_antartica[167, ]$iso_a2 <- "SO"
+
+# TRASFORMAZIONE DEI DATI ----
+join <- left_join(world_sf_no_antartica, dati_xls, by = c("iso_a2" = "ISO"), multiple = "all")
+join <- join |>
+    st_as_sf() |>
+    st_transform(robinson_crs)
+
+Info <- paste0(
+    "\nStato: ", join$name,
+    "\nAnno dell'evento: ", join$Year,
+    "\nMega evento: ", join$Event,
+    "\nImpatto dell'evento: ", join$`Impatto totale`
+)
+Info[1:2]
+
+join$Info <- Info
+
+as.numeric(join$`Impatto totale`)
+vmin <- min(join$`Impatto totale`, na.rm = TRUE, finite = TRUE)
+vmax <- max(join$`Impatto totale`, na.rm = TRUE, finite = TRUE)
+brk <- round(classInt::classIntervals(
+    join$`Impatto totale`,
+    n = 3,
+    style = "quantile"
+)$brks, 1) |>
+    head(-1) |>
+    tail(-1) |>
+    append(vmax)
+breaks <- c(vmin, brk)
+
+cols <- c('#ff0000', '#ffa500', '#72d65d', '#00a2d2', "lightgray")
+
+col <- colorRampPalette(c('#ff0000', '#00a2d2'))(length(breaks) + 1)
+
+clrs <- scale_fill_gradient2(low = "#ff0000", mid = '#ffa500', high = '#72d65d', na.value = "lightgray")
+
+# BANDIERE ----
+
+join <- join %>%
+    mutate(
+        flag = case_when(
+            iso_a2 == "AE" ~ "Flag/ae.png",
+            iso_a2 == "AO" ~ "Flag/ao.png",
+            iso_a2 == "AR" ~ "Flag/ar.png",
+            iso_a2 == "AT" ~ "Flag/at.png",
+            iso_a2 == "AU" ~ "Flag/au.png",
+            iso_a2 == "AZ" ~ "Flag/az.png",
+            iso_a2 == "BA" ~ "Flag/ba.png",
+            iso_a2 == "BF" ~ "Flag/bf.png",
+            iso_a2 == "BG" ~ "Flag/bg.png",
+            iso_a2 == "BR" ~ "Flag/br.png",
+            iso_a2 == "BY" ~ "Flag/by.png",
+            iso_a2 == "CA" ~ "Flag/ca.png",
+            iso_a2 == "CH" ~ "Flag/ch.png",
+            iso_a2 == "CI" ~ "Flag/ci.png",
+            iso_a2 == "CL" ~ "Flag/cl.png",
+            iso_a2 == "CM" ~ "Flag/cm.png",
+            iso_a2 == "CN" ~ "Flag/cn.png",
+            iso_a2 == "CO" ~ "Flag/co.png",
+            iso_a2 == "CZ" ~ "Flag/cz.png",
+            iso_a2 == "DE" ~ "Flag/de.png",
+            iso_a2 == "DZ" ~ "Flag/dz.png",
+            iso_a2 == "EC" ~ "Flag/ec.png",
+            iso_a2 == "EG" ~ "Flag/eg.png",
+            iso_a2 == "ES" ~ "Flag/es.png",
+            iso_a2 == "ET" ~ "Flag/et.png",
+            iso_a2 == "FI" ~ "Flag/fi.png",
+            iso_a2 == "FR" ~ "Flag/fr.png",
+            iso_a2 == "GA" ~ "Flag/ga.png",
+            iso_a2 == "GB" ~ "Flag/gb.png",
+            iso_a2 == "GH" ~ "Flag/gh.png",
+            iso_a2 == "GN" ~ "Flag/gn.png",
+            iso_a2 == "GQ" ~ "Flag/gq.png",
+            iso_a2 == "GR" ~ "Flag/gr.png",
+            iso_a2 == "HR" ~ "Flag/hr.png",
+            iso_a2 == "HU" ~ "Flag/hu.png",
+            iso_a2 == "ID" ~ "Flag/id.png",
+            iso_a2 == "IN" ~ "Flag/in.png",
+            iso_a2 == "IR" ~ "Flag/ir.png",
+            iso_a2 == "IT" ~ "Flag/it.png",
+            iso_a2 == "JM" ~ "Flag/jm.png",
+            iso_a2 == "JP" ~ "Flag/jp.png",
+            iso_a2 == "KR" ~ "Flag/kr.png",
+            iso_a2 == "KZ" ~ "Flag/kr.png",
+            iso_a2 == "LB" ~ "Flag/lb.png",
+            iso_a2 == "LU" ~ "Flag/lu.png",
+            iso_a2 == "LY" ~ "Flag/ly.png",
+            iso_a2 == "MA" ~ "Flag/ma.png",
+            iso_a2 == "ML" ~ "Flag/ml.png",
+            iso_a2 == "MX" ~ "Flag/mx.png",
+            iso_a2 == "MY" ~ "Flag/my.png",
+            iso_a2 == "NG" ~ "Flag/ng.png",
+            iso_a2 == "NL" ~ "Flag/nl.png",
+            iso_a2 == "NO" ~ "Flag/no.png",
+            iso_a2 == "NZ" ~ "Flag/nz.png",
+            iso_a2 == "OM" ~ "Flag/om.png",
+            iso_a2 == "PH" ~ "Flag/ph.png",
+            iso_a2 == "PL" ~ "Flag/pl.png",
+            iso_a2 == "PT" ~ "Flag/pt.png",
+            iso_a2 == "QA" ~ "Flag/qa.png",
+            iso_a2 == "RO" ~ "Flag/ro.png",
+            iso_a2 == "RS" ~ "Flag/rs.png",
+            iso_a2 == "RU" ~ "Flag/ru.png",
+            iso_a2 == "SD" ~ "Flag/sd.png",
+            iso_a2 == "SG" ~ "Flag/sg.png",
+            iso_a2 == "SK" ~ "Flag/sk.png",
+            iso_a2 == "SN" ~ "Flag/sn.png",
+            iso_a2 == "SY" ~ "Flag/sy.png",
+            iso_a2 == "TH" ~ "Flag/th.png",
+            iso_a2 == "TN" ~ "Flag/tn.png",
+            iso_a2 == "TR" ~ "Flag/tr.png",
+            iso_a2 == "US" ~ "Flag/us.png",
+            iso_a2 == "VN" ~ "Flag/vn.png",
+            iso_a2 == "ZA" ~ "Flag/za.png"
+        ))%>%
+    select(flag, everything())
+
+# WEB APP ----
+
+# Creazione della colonna con le immagini delle bandiere
+join <- join %>%
+    mutate(
+        flag_html = sprintf('<img src="%s" width="50" height="25"/>', flag)
+    )
+
+# Definizione dell'interfaccia Shiny
+ui <- fluidPage(
+    titlePanel("Web App Sport Event Impact"),
+    theme = shinytheme("cerulean"),
+    sidebarLayout(
+        sidebarPanel(
+            selectInput("mega_evento", "Seleziona Mega Evento:", choices = c(
+                "Africa Cup", "Alpine Skiing World", "Asian Beach Games", "Asian Games",
+                "Commonwealth Games", "European Games", "Expo", "Fisu University Summer",
+                "Fisu University Winter", "Mediterranean Games", "Olympic Summer",
+                "Olympic Winter", "World Cup", "World Games", "World Swimming", "Youth Games"
+            ), selected = "Olympic Summer"),
+            
+            selectizeInput("paese", "Seleziona Paesi:", choices = NULL, selected = NULL, 
+                           multiple = TRUE),
+            selectizeInput("anno", "Seleziona Anni:", choices = NULL, selected = NULL, 
+                           multiple = TRUE)
+        ),
+        mainPanel(
+            plotlyOutput("mappa"),
+            DTOutput("tabella")  # Utilizziamo DTOutput invece di tableOutput
+        )
+    )
+)
+
+
+# Funzione di server Shiny
+server <- function(input, output, session) {  # Aggiungi 'session' come parametro
+    
+    # Filtro per paese basato sul mega evento selezionato
+    paesi_disponibili <- reactive({
+        filtered_data <- join %>%
+            filter(Event == input$mega_evento)
+        if (is.null(input$paese) || "Tutti i paesi" %in% input$paese) {
+            unique(filtered_data$name)
+        } else {
+            input$paese
+        }
+    })
+    
+    # Filtro per anno basato sul paese selezionato
+    anni_disponibili <- reactive({
+        filtered_data <- join
+        if (!is.null(input$mega_evento)) {
+            filtered_data <- filter(filtered_data, Event == input$mega_evento)
+        }
+        if (!is.null(input$paese) && !("Tutti i paesi" %in% input$paese)) {
+            filtered_data <- filter(filtered_data, name %in% input$paese)
+        }
+        if (is.null(input$anno) || "Tutti gli anni" %in% input$anno) {
+            unique(filtered_data$Year)
+        } else {
+            input$anno
+        }
+    })
+    
+    filtered_join <- reactive({
+        filtered_data <- join
+        if (!is.null(input$mega_evento)) {
+            filtered_data <- filter(filtered_data, Event == input$mega_evento)
+        }
+        if (!is.null(input$paese) && !("Tutti i paesi" %in% input$paese)) {
+            filtered_data <- filter(filtered_data, name %in% input$paese)
+        }
+        if (!is.null(input$anno) && !("Tutti gli anni" %in% input$anno)) {
+            filtered_data <- filter(filtered_data, Year %in% input$anno)
+        }
+        filtered_data
+    })
+    
+    # Impostare le opzioni per il filtro del paese
+    observeEvent(join, {
+        updateSelectizeInput(session, "paese", 
+                             choices = c("Tutti i paesi", paesi_disponibili()), 
+                             selected = "Tutti i paesi")
+    })
+    
+    # Impostare le opzioni per il filtro dell'anno
+    observeEvent(join, {
+        updateSelectizeInput(session, "anno", 
+                             choices = c("Tutti gli anni", anni_disponibili()), 
+                             selected = "Tutti gli anni")
+    })
+    
+    output$mappa <- renderPlotly({
+        ggsf_filtered <- ggplot(filtered_join()) +
+            geom_sf(aes(fill = `Impatto totale`, label = Info)) +
+            scale_fill_gradient2(low = "#ff0000", mid = '#ffa500', high = '#72d65d',
+                                 na.value = "lightgray", space = "Lab") +
+            labs(title = "Mappa impatto dei mega eventi", fill = "Impatto calcolato") +
+            theme_minimal()
+        ggplotly(ggsf_filtered, tooltip = "label")
+    })
+    
+    # Creiamo la tabella con DT e aggiungiamo la colonna con le bandiere
+    output$tabella <- renderDT({
+        table <- filtered_join() %>%
+            dplyr::select(
+                Flag = flag_html , ISO = iso_a2, Year, Event, `Impatto economico`, 
+                `Impatto ambientale`, `Impatto sociale`, `Impatto totale`
+            )
+        
+        datatable(
+            table,
+            escape = FALSE,  # Permette di interpretare le immagini HTML
+            options = list(
+                dom = 't',  # Nasconde la barra di ricerca
+                paging = FALSE,  # Disabilita la paginazione
+                ordering = TRUE,  # Disabilita il sorting
+                autoWidth = TRUE, ## use smart column width handling
+                info = FALSE,  # Nasconde il conteggio delle righe
+                scrollX = TRUE
+            ),
+            rownames = FALSE,  # Nasconde numeri di riga
+            class = 'stripe hover',  # Stile della tabella
+            callback = JS('table.column(0).nodes().to$().css({ width: "50px" });')  
+            # Imposta la larghezza delle immagini
+        ) %>%
+            formatStyle("Impatto totale" , backgroundColor = styleInterval(breaks, cols))
+    })
+}
+
+# ESECUZIONE WEB APP SHINY ----
+shinyApp(ui = ui, server = server)
+
+
+
+
+
+
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:

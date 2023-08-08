@@ -1,0 +1,39 @@
+---
+title: "Sport Event Impact Document"
+author: "Alberto Calabrese"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Descrizione Sport Event Impact 
+
+Sport Event Impact è un progetto creato da Sport Business Lab Consultancy con lo scopo di calcolare e divulgare l'impatto calcolato di tutti i maggiori mega eventi in ambito sportivo.\n
+L'impatto viene calcolato attraverso 3 macro categorie:\n
+- Economia \n
+- Ambiente\n
+- Società\n
+
+I valori d'impatto calcolati per ogni macro categoria sono basati su 4 indicatori ovvero:\n
+- Disoccupazione\n
+- Crescita del GDP\n
+- Inflazione\n
+- Turismo\n
+- Superfice territoriale\n
+- Percentuale di aree agricole\n
+- Emissioni di CO2\n
+- Linee ferroviarie\n
+- Percentuale di popolazione urbana\n
+- Aspettativa di vita\n
+- Crescita della popolazione\n
+- Persone che vivono nelle baraccopoli\n
+
+L'impatto viene calcolato seguendo una scala che va da -1 a +2\n
+
+-1 Impatto Negativo\n
+0 Impatto Neutro\n
++1 Impatto positivo di piccola scala\n
++2 Impatto positivo di grande scala\n
